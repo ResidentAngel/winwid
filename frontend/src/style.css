@@ -1,0 +1,250 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+}
+
+html, body {
+    background: transparent !important;
+    color: #ffffff;
+    overflow: hidden;
+}
+
+/* Две парящие карточки в стиле Bento macOS */
+.bento-grid {
+    display: grid;
+    grid-template-columns: 225px minmax(0, 1fr);
+    gap: 14px;
+    padding: 20px; /* Запас со всех 4 сторон, чтобы не резало рамку и тень */
+    width: 100vw;
+    height: 100vh;
+}
+.apple-card {
+    background: rgba(24, 24, 26, 0.92);
+    border-radius: 24px;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Зона перетаскивания виджета мышкой */
+.drag-zone {
+    --wails-draggable: drag;
+    cursor: grab;
+}
+
+.time-display {
+    font-size: 38px;
+    font-weight: 600;
+    letter-spacing: -1.5px;
+    line-height: 1;
+}
+
+.month-title {
+    margin-top: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #FF453A; /* Фирменный красный цвет календаря Apple */
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+/* Сетка мини-календаря Apple */
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-top: 12px;
+    margin-bottom: 4px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: #8E8E93;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    row-gap: 3px;
+    text-align: center;
+}
+
+.day-cell {
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    margin: 0 auto;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #E5E5EA;
+    transition: background 0.15s;
+}
+
+.day-cell:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.day-cell.empty {
+    pointer-events: none;
+}
+
+/* Сегодняшний день — красный кружок Apple */
+.day-cell.today {
+    color: #FF453A;
+    font-weight: 700;
+}
+
+/* Выбранный день в календаре */
+.day-cell.selected {
+    background: #FF453A;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Правая карточка — Расписание и Заметки */
+.schedule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+}
+
+.schedule-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.schedule-count {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0A84FF; /* Синий акцент Apple Reminders */
+}
+
+.notes-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+}
+
+.notes-list::-webkit-scrollbar {
+    width: 0px;
+}
+
+.empty-state {
+    margin: auto;
+    font-size: 12px;
+    color: #636366;
+}
+
+/* Элемент расписания с цветной вертикальной полоской слева как в Календаре iOS */
+.note-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px 12px;
+    border-radius: 12px;
+    border-left: 3px solid #0A84FF;
+    transition: transform 0.15s, background 0.15s;
+}
+
+.note-item:hover {
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.check-circle {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1.5px solid #8E8E93;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+}
+
+.check-circle:hover {
+    border-color: #30D158;
+    background: rgba(48, 209, 88, 0.25);
+}
+
+.note-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.note-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: #F2F2F7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.note-time {
+    font-size: 11px;
+    color: #8E8E93;
+}
+
+/* Минималистичная капсула ввода внизу */
+.input-capsule {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    padding: 4px 6px 4px 10px;
+    gap: 6px;
+}
+
+.input-capsule input {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 12px;
+    outline: none;
+}
+
+.input-capsule .time-in {
+    width: 58px;
+    color: #0A84FF;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Прячем лишнюю иконку часиков в поле времени */
+.input-capsule .time-in::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+.input-capsule .text-in {
+    flex: 1;
+}
+
+.input-capsule .text-in::placeholder {
+    color: #636366;
+}
+
+.add-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    background: #0A84FF;
+    color: #fff;
+    font-size: 16px;
+    line-height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

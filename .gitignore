@@ -1,0 +1,8 @@
+build/bin
+node_modules
+frontend/dist
+# локальные бинарники и данные
+*.exe
+widget_data.json
+widget_pos.json
+.env
