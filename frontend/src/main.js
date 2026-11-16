@@ -109,8 +109,19 @@ function renderCalendar() {
     });
 }
 
+function showError(message) {
+    document.getElementById('notes').innerHTML = `<div class="empty-state">${message}</div>`;
+}
+
 async function renderNotes() {
-    const notes = (await GetNotesByDate(selectedDate)) || [];
+    let notes;
+    try {
+        notes = (await GetNotesByDate(selectedDate)) || [];
+    } catch (err) {
+        console.error(err);
+        showError('Нет доступа к базе данных');
+        return;
+    }
     // сортируем события по времени например 09:00 раньше 14:30
     notes.sort((a, b) => a.time.localeCompare(b.time));
 
@@ -134,7 +145,14 @@ async function renderNotes() {
 
     container.querySelectorAll('.check-circle').forEach(btn => {
         btn.addEventListener('click', async () => {
-            await DeleteNote(btn.dataset.id);
+            try {
+                await DeleteNote(btn.dataset.id);
+            } catch (err) {
+                console.error(err);
+                showError('Не удалось удалить событие');
+                setTimeout(renderNotes, 2500);
+                return;
+            }
             await renderNotes();
         });
     });
@@ -145,7 +163,15 @@ async function handleAdd() {
     const textEl = document.getElementById('note-text');
     if (!textEl.value.trim()) return;
 
-    await AddNote(selectedDate, timeEl.value, textEl.value.trim());
+    try {
+        await AddNote(selectedDate, timeEl.value, textEl.value.trim());
+    } catch (err) {
+        // текст остается в поле, чтобы его можно было отправить повторно
+        console.error(err);
+        showError('Не удалось сохранить событие');
+        setTimeout(renderNotes, 2500);
+        return;
+    }
     textEl.value = '';
     await renderNotes();
 }

@@ -30,6 +30,7 @@ func main() {
 		// RGBA c нулевым альфа каналом делает подложку окна прозрачной
 		BackgroundColour: &options.RGBA{R: 0, G: 0, B: 0, A: 0},
 		OnStartup:        app.startup,
+		OnShutdown:       app.shutdown,
 		Bind: []interface{}{
 			app, // прокидываем методы структуры App в JS
 		},

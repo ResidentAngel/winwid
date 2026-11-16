@@ -6,3 +6,11 @@ frontend/dist
 widget_data.json
 widget_pos.json
 .env
+# локальная база SQLite и IDE
+build/bin
+node_modules
+*.db
+*.db-wal
+*.db-shm
+*.log
+.idea/

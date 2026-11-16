@@ -1,19 +1,29 @@
-# README
+# winwid
 
-## About
+Виджет для рабочего стола Windows: часы, календарь и события.  
+Написан на Go + Wails (WebView2), данные хранятся локально в SQLite.  
+Не требует установки PostgreSQL, Docker или других сервисов.
 
-This is the official Wails Vanilla template.
+## Возможности
 
-You can configure the project by editing `wails.json`. More information about the project settings can be found
-here: https://wails.io/docs/reference/project-config
+- Прозрачный виджет без рамки, закреплённый на рабочем столе.
+- Мини-календарь и список событий на выбранный день.
+- Добавление и удаление событий.
+- Запоминание позиции виджета между запусками.
+- Локальная база данных SQLite в `%APPDATA%\winwid\winwid.db`.
+- Логирование в `%APPDATA%\winwid\winwid.log` (ротация после 1 МБ).
 
-## Live Development
+## Требования для сборки
 
-To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
-server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
-and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
-to this in your browser, and you can call your Go code from devtools.
+- Go 1.21+
+- Wails CLI v2:  
+  `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
+- Node.js 18+
+- NSIS (для установщика):  
+  `winget install NSIS.NSIS`  
+  добавить `C:\Program Files (x86)\NSIS` в `PATH`.
 
-## Building
+## Разработка
 
-To build a redistributable, production mode package, use `wails build`.
+```bash
+wails dev
