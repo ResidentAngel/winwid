@@ -1,29 +1,30 @@
 # winwid
 
-Виджет для рабочего стола Windows: часы, календарь и события.  
-Написан на Go + Wails (WebView2), данные хранятся локально в SQLite.  
-Не требует установки PostgreSQL, Docker или других сервисов.
+A desktop widget for Windows: clock, calendar, and events.  
+Written in Go + Wails (WebView2), data is stored locally in SQLite.  
+No need to install PostgreSQL, Docker, or any other services.
 
-## Возможности
+## Features
 
-- Прозрачный виджет без рамки, закреплённый на рабочем столе.
-- Мини-календарь и список событий на выбранный день.
-- Добавление и удаление событий.
-- Запоминание позиции виджета между запусками.
-- Локальная база данных SQLite в `%APPDATA%\winwid\winwid.db`.
-- Логирование в `%APPDATA%\winwid\winwid.log` (ротация после 1 МБ).
+- Frameless transparent widget pinned to the desktop.
+- Mini calendar and a list of events for the selected day.
+- Add and delete events.
+- Remembers the widget position between launches.
+- Local SQLite database at `%APPDATA%\winwid\winwid.db`.
+- Logging to `%APPDATA%\winwid\winwid.log` (rotated after 1 MB).
 
-## Требования для сборки
+## Build requirements
 
 - Go 1.21+
 - Wails CLI v2:  
   `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
 - Node.js 18+
-- NSIS (для установщика):  
+- NSIS (for the installer):  
   `winget install NSIS.NSIS`  
-  добавить `C:\Program Files (x86)\NSIS` в `PATH`.
+  add `C:\Program Files (x86)\NSIS` to `PATH`.
 
-## Разработка
+## Development
 
 ```bash
-wails dev
+wails dev 
+```
