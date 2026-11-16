@@ -138,3 +138,23 @@ func SendToDesktop(hwnd uintptr) {
 		SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_FRAMECHANGED,
 	)
 }
+
+// GetWindowPosition возвращает текущие координаты X и Y окна на экране
+func GetWindowPosition(hwnd uintptr) (int32, int32, bool) {
+	var rect RECT
+	ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&rect)))
+	if ret == 0 {
+		return 0, 0, false
+	}
+	return rect.Left, rect.Top, true
+}
+
+// SetWindowPosition перемещает виджет в сохраненные координаты X и Y при запуске
+func SetWindowPosition(hwnd uintptr, x, y int32) {
+	procSetWindowPos.Call(
+		hwnd,
+		uintptr(HWND_BOTTOM),
+		uintptr(x), uintptr(y), 0, 0,
+		SWP_NOSIZE|SWP_NOACTIVATE|SWP_FRAMECHANGED,
+	)
+}

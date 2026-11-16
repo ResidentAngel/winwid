@@ -2,127 +2,188 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
+	"log"
 	"os"
-	"sync"
 	"syscall"
 	"time"
 	"unsafe"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Note структура одной заметки или задачи в расписании
-// теги json нужны для сериализации при передаче во фронт и записи в файл
 type Note struct {
 	ID        string `json:"id"`
-	Date      string `json:"date"` // формат yyyy-mm-dd для привязки к календарю
-	Time      string `json:"time"` // например 14:30
+	Date      string `json:"date"`
+	Time      string `json:"time"`
 	Content   string `json:"content"`
 	Completed bool   `json:"completed"`
 }
 
 type App struct {
-	ctx      context.Context
-	mu       sync.RWMutex // защищает срез notes от состояния гонки
-	notes    []Note
-	dataFile string
+	ctx context.Context
+	db  *pgxpool.Pool // безопасный пул соединений с PostgreSQL
 }
 
 func NewApp() *App {
-	return &App{
-		notes:    make([]Note, 0),
-		dataFile: "data/notes.json",
-	}
+	return &App{}
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	_ = a.loadFromDisk()
 
-	go func() {
-		// ждем создания окна и превращаем его в виджет
-		time.Sleep(300 * time.Millisecond)
-		_ = MakeWidgetWindow("winwid")
+	// ,ерем строку подключения из переменной окружения или используем дефолтную
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = "postgres://postgres:secret@127.0.0.1:5432/winwid?sslmode=disable"
+	}
 
-		// каждые 2 секунды закрепляем виджет на нижнем слое рабочего стола,
-		// чтобы после клика по нему он снова ложился под открытые программы
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		log.Printf("Ошибка подключения к PostgreSQL: %v", err)
+	} else {
+		a.db = pool
+		a.initSchema()
+	}
 
-		titlePtr, _ := syscall.UTF16PtrFromString("winwid")
-		for {
-			select {
-			case <-ctx.Done():
-				return // Graceful shutdown при закрытии программы
-			case <-ticker.C:
-				hwnd, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(titlePtr)))
-				if hwnd != 0 {
-					SendToDesktop(hwnd)
+	go a.windowManagerLoop(ctx)
+}
+
+// initSchema автоматически накатывает таблицы при старте
+func (a *App) initSchema() {
+	query := `
+	CREATE TABLE IF NOT EXISTS notes (
+		id TEXT PRIMARY KEY,
+		note_date TEXT NOT NULL,
+		note_time TEXT NOT NULL,
+		content TEXT NOT NULL,
+		completed BOOLEAN DEFAULT FALSE
+	);
+	CREATE INDEX IF NOT EXISTS idx_notes_date ON notes(note_date);
+
+	CREATE TABLE IF NOT EXISTS widget_state (
+		id INT PRIMARY KEY DEFAULT 1,
+		pos_x INT NOT NULL,
+		pos_y INT NOT NULL
+	);`
+
+	if _, err := a.db.Exec(a.ctx, query); err != nil {
+		log.Printf("Ошибка миграции БД: %v", err)
+	}
+}
+
+// windowManagerLoop закрепляет виджет на рабочем столе и сохраняет его позицию при перетаскивании
+func (a *App) windowManagerLoop(ctx context.Context) {
+	time.Sleep(300 * time.Millisecond)
+	_ = MakeWidgetWindow("winwid")
+
+	titlePtr, _ := syscall.UTF16PtrFromString("winwid")
+	hwnd, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(titlePtr)))
+
+	// восстанавливаем сохраненную позицию из PostgreSQL при старте
+	var lastX, lastY int32
+	if a.db != nil && hwnd != 0 {
+		err := a.db.QueryRow(ctx, `SELECT pos_x, pos_y FROM widget_state WHERE id = 1`).Scan(&lastX, &lastY)
+		if err == nil {
+			SetWindowPosition(hwnd, lastX, lastY)
+		} else {
+			lastX, lastY, _ = GetWindowPosition(hwnd)
+		}
+	}
+
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			if a.db != nil {
+				a.db.Close() // корректно закрываем пул соединений при выходе
+			}
+			return
+		case <-ticker.C:
+			hwnd, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(titlePtr)))
+			if hwnd == 0 {
+				continue
+			}
+
+			SendToDesktop(hwnd)
+
+			// проверяем перетащил ли пользователь виджет в другое место
+			curX, curY, ok := GetWindowPosition(hwnd)
+			if ok && (curX != lastX || curY != lastY) {
+				lastX, lastY = curX, curY
+				if a.db != nil {
+					_, _ = a.db.Exec(ctx, `
+						INSERT INTO widget_state (id, pos_x, pos_y)
+						VALUES (1, $1, $2)
+						ON CONFLICT (id) DO UPDATE SET pos_x = EXCLUDED.pos_x, pos_y = EXCLUDED.pos_y
+					`, curX, curY)
 				}
 			}
 		}
-	}()
-}
-
-// DeleteNote удаляет выполненную заметку по её ID
-func (a *App) DeleteNote(id string) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	for i, n := range a.notes {
-		if n.ID == id {
-			// идиоматичное удаление элемента из среза в Go
-			a.notes = append(a.notes[:i], a.notes[i+1:]...)
-			break
-		}
 	}
-	_ = a.saveToDisk()
 }
 
-// GetNotesByDate возвращает заметки на конкретный день
+// GetNotesByDate читает заметки за выбранный день из PostgreSQL
 func (a *App) GetNotesByDate(date string) []Note {
-	a.mu.RLock()         // блокируем только на чтение
-	defer a.mu.RUnlock() // гарантированно снимаем блокировку при выходе из функции
-	var result []Note
-	for _, n := range a.notes {
-		if n.Date == date {
+	result := make([]Note, 0)
+	if a.db == nil {
+		return result
+	}
+
+	ctx, cancel := context.WithTimeout(a.ctx, 2*time.Second)
+	defer cancel()
+
+	rows, err := a.db.Query(ctx, `
+		SELECT id, note_date, note_time, content, completed
+		FROM notes
+		WHERE note_date = $1
+		ORDER BY note_time ASC
+	`, date)
+	if err != nil {
+		return result
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var n Note
+		if err := rows.Scan(&n.ID, &n.Date, &n.Time, &n.Content, &n.Completed); err == nil {
 			result = append(result, n)
 		}
 	}
 	return result
 }
 
-// AddNote добавляет новую заметку в календарь
-func (a *App) AddNote(date, timeStr string, content string) Note {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
+// AddNote сохраняет новую заметку в PostgreSQL
+func (a *App) AddNote(date, timeStr, content string) Note {
 	newNote := Note{
-		ID:      time.Now().Format("20060102150405.000"), // простой уникальный ID ПО таймстампу
+		ID:      fmt.Sprintf("%d", time.Now().UnixNano()),
 		Date:    date,
 		Time:    timeStr,
 		Content: content,
 	}
 
-	a.notes = append(a.notes, newNote)
-	_ = a.saveToDisk()
+	if a.db != nil {
+		ctx, cancel := context.WithTimeout(a.ctx, 2*time.Second)
+		defer cancel()
+
+		_, _ = a.db.Exec(ctx, `
+			INSERT INTO notes (id, note_date, note_time, content, completed)
+			VALUES ($1, $2, $3, $4, $5)
+		`, newNote.ID, newNote.Date, newNote.Time, newNote.Content, newNote.Completed)
+	}
 	return newNote
 }
 
-func (a *App) loadFromDisk() error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	data, err := os.ReadFile(a.dataFile)
-	if err != nil {
-		return err
+// DeleteNote удаляет заметку из PostgreSQL
+func (a *App) DeleteNote(id string) {
+	if a.db == nil {
+		return
 	}
-	return json.Unmarshal(data, &a.notes)
-}
 
-func (a *App) saveToDisk() error {
-	data, err := json.MarshalIndent(a.notes, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(a.dataFile, data, 0644)
+	ctx, cancel := context.WithTimeout(a.ctx, 2*time.Second)
+	defer cancel()
+
+	_, _ = a.db.Exec(ctx, `DELETE FROM notes WHERE id = $1`, id)
 }

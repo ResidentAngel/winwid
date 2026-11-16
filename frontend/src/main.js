@@ -1,7 +1,7 @@
 import './style.css';
 import { GetNotesByDate, AddNote, DeleteNote } from '../wailsjs/go/main/App';
 
-// Форматирование даты в YYYY-MM-DD с учетом локального часового пояса
+// форматирование даты в YYYY-MM-DD с учетом локального часового пояса
 function formatISO(dateObj) {
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -14,7 +14,7 @@ let selectedDate = currentToday;
 
 document.querySelector('#app').innerHTML = `
   <div class="bento-grid">
-    <!-- Левая карточка: Часы + Календарь Apple -->
+    <!-- левая карточка: часы + календарь -->
     <div class="apple-card">
       <div class="drag-zone">
         <div class="time-display" id="clock">00:00</div>
@@ -26,7 +26,7 @@ document.querySelector('#app').innerHTML = `
       <div class="calendar-days" id="calendar-grid"></div>
     </div>
 
-    <!-- Правая карточка: Расписание и Заметки -->
+    <!-- правая карточка: расписание и заметки -->
     <div class="apple-card">
       <div class="schedule-header drag-zone">
         <span class="schedule-title" id="selected-date-title">Сегодня</span>
@@ -54,17 +54,17 @@ function updateClock() {
         month: 'short'
     }).replace('.', '');
 
-    // Проверяем, не наступила ли полночь (смена даты в реальном времени)
+    // проверяем не наступила ли полночь
     const newToday = formatISO(now);
     if (newToday !== currentToday) {
-        // Если у пользователя был открыт раздел "Сегодня", переключаем его на новый день
+        // если у пользователя был открыт раздел сегодня переключаем его на новый день
         if (selectedDate === currentToday) {
             selectedDate = newToday;
             document.getElementById('selected-date-title').textContent = 'Сегодня';
             renderNotes();
         }
         currentToday = newToday;
-        renderCalendar(); // Перерисовываем красный кружок на новое число
+        renderCalendar(); // перерисовываем красный кружок на новое число
     }
 }
 setInterval(updateClock, 1000);
@@ -77,7 +77,7 @@ function renderCalendar() {
     const todayStr = formatISO(now);
 
     const firstDay = new Date(year, month, 1).getDay();
-    const offset = (firstDay + 6) % 7; // Сдвиг, чтобы неделя начиналась с Понедельника
+    const offset = (firstDay + 6) % 7; // сдвиг чтобы неделя начиналась с понедельника
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     const grid = document.getElementById('calendar-grid');
@@ -111,7 +111,7 @@ function renderCalendar() {
 
 async function renderNotes() {
     const notes = (await GetNotesByDate(selectedDate)) || [];
-    // Сортируем события по времени (например, 09:00 раньше 14:30)
+    // сортируем события по времени например 09:00 раньше 14:30
     notes.sort((a, b) => a.time.localeCompare(b.time));
 
     document.getElementById('notes-count').textContent = notes.length;

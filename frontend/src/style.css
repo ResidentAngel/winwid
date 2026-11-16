@@ -12,12 +12,12 @@ html, body {
     overflow: hidden;
 }
 
-/* Две парящие карточки в стиле Bento macOS */
+/* две парящие карточки в стиле Bento macOS */
 .bento-grid {
     display: grid;
     grid-template-columns: 225px minmax(0, 1fr);
     gap: 14px;
-    padding: 20px; /* Запас со всех 4 сторон, чтобы не резало рамку и тень */
+    padding: 20px; /* запас со всех 4 сторон, чтобы не резало рамку и тень */
     width: 100vw;
     height: 100vh;
 }
@@ -28,9 +28,12 @@ html, body {
     border: 1px solid rgba(255, 255, 255, 0.12);
     display: flex;
     flex-direction: column;
+    height: 100%; /* карточка строго заполняет высоту сетки */
+    box-sizing: border-box; /* учитываем padding внутри общей высоты */
+    overflow: hidden; /* прячем всё, что пытается вылезти за скругленные углы */
 }
 
-/* Зона перетаскивания виджета мышкой */
+/* зона перетаскивания виджета мышкой */
 .drag-zone {
     --wails-draggable: drag;
     cursor: grab;
@@ -47,12 +50,12 @@ html, body {
     margin-top: 6px;
     font-size: 11px;
     font-weight: 700;
-    color: #FF453A; /* Фирменный красный цвет календаря Apple */
+    color: #FF453A; /* фирменный красный цвет календаря Apple */
     text-transform: uppercase;
     letter-spacing: 0.8px;
 }
 
-/* Сетка мини-календаря Apple */
+/* сетка мини-календаря Apple */
 .calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -92,20 +95,20 @@ html, body {
     pointer-events: none;
 }
 
-/* Сегодняшний день — красный кружок Apple */
+/* сегодняшний день красный кружок Apple */
 .day-cell.today {
     color: #FF453A;
     font-weight: 700;
 }
 
-/* Выбранный день в календаре */
+/* выбранный день в календаре */
 .day-cell.selected {
     background: #FF453A;
     color: #ffffff;
     font-weight: 600;
 }
 
-/* Правая карточка — Расписание и Заметки */
+/* правая карточка расписание и заметки */
 .schedule-header {
     display: flex;
     justify-content: space-between;
@@ -122,20 +125,36 @@ html, body {
 .schedule-count {
     font-size: 18px;
     font-weight: 700;
-    color: #0A84FF; /* Синий акцент Apple Reminders */
+    color: #0A84FF; /* синий акцент Apple Reminders */
 }
 
 .notes-list {
     flex: 1;
-    overflow-y: auto;
+    min-height: 0; /* Разрешаем флекс-контейнеру сжиматься */
+    overflow-y: auto; /* Включаем вертикальный скролл при переполнении */
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding-right: 4px;
+    margin-top: 8px;
 }
 
+/* Тонкий минималистичный скроллбар в стиле macOS */
 .notes-list::-webkit-scrollbar {
-    width: 0px;
+    width: 4px;
+}
+
+.notes-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.notes-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+.notes-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .empty-state {
@@ -144,7 +163,7 @@ html, body {
     color: #636366;
 }
 
-/* Элемент расписания с цветной вертикальной полоской слева как в Календаре iOS */
+/* элемент расписания с цветной вертикальной полоской слева как в Календаре iOS */
 .note-item {
     display: flex;
     align-items: center;
@@ -195,7 +214,7 @@ html, body {
     color: #8E8E93;
 }
 
-/* Минималистичная капсула ввода внизу */
+/* минималистичная капсула ввода внизу */
 .input-capsule {
     margin-top: 10px;
     display: flex;
@@ -221,7 +240,7 @@ html, body {
     cursor: pointer;
 }
 
-/* Прячем лишнюю иконку часиков в поле времени */
+/* прячем лишнюю иконку часиков в поле времени */
 .input-capsule .time-in::-webkit-calendar-picker-indicator {
     display: none;
 }
@@ -235,16 +254,17 @@ html, body {
 }
 
 .add-btn {
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     border: none;
     background: #0A84FF;
     color: #fff;
     font-size: 16px;
-    line-height: 24px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    line-height: 1;
+    padding-bottom: 1px;
 }
